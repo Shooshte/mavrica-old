@@ -179,8 +179,10 @@ export const consolidateColors = (colors: ColorCount[]): ColorCount[] => {
   const numberOfColors = consolidatedColors.length;
 
   if (numberOfColors > 20) {
+    console.log("consolidating, colors left: ", numberOfColors);
     return consolidateColors(consolidatedColors);
   } else {
+    console.log("done consolidating!");
     return consolidatedColors;
   }
 };

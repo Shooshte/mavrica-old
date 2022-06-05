@@ -10,7 +10,7 @@ export const getFileColors = async (
 ): Promise<ColorCount[]> => {
   const dirRelativeToPublicFolder = "images";
   const dir = path.resolve("./public", dirRelativeToPublicFolder);
-  const filePath = `${dir}/test2.png`;
+  const filePath = `${dir}/test10.jpeg`;
 
   let data = {};
   const jimpImage = await JIMP.read(filePath);
