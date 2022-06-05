@@ -41,6 +41,14 @@ interface GetDistanceArgs {
   color2: RGBA;
 }
 
+export const getRelativeLuminance = (color: RGBA): number => {
+  const decimalRGB = calcDecimalRGB(color);
+  const luminance = calcLuminance(decimalRGB);
+  const relativeLuminance = YtoLstar(luminance);
+
+  return relativeLuminance;
+};
+
 export const getColorDistance = ({
   color1,
   color2,
@@ -56,26 +64,30 @@ export const getColorDistance = ({
   return Math.abs(relativeLuminance1 - relativeLuminance2);
 };
 
-interface ColorsDistanceData {
-  color1: ColorCount;
-  color2: ColorCount;
-  distance: number;
-}
-
-export const consolidateColors = (colors: ColorCount[]): ColorCount[] => {
+export const consolidateColors = (
+  colors: ColorCount[],
+  maxColors: number
+): ColorCount[] => {
   // sort colors by count
   const sortedColors = colors.sort((a, b) => a.count - b.count);
-  // for smallest counts get shortest distance to another color
   const smallestCount = sortedColors[0].count;
 
-  let smallCountColors = sortedColors.filter(
-    (color) => color.count === smallestCount
-  );
+  // all colors with the smallest count, sorted by relative luminance (darkest color is first)
+  let smallCountColors = sortedColors
+    .filter((color) => color.count === smallestCount)
+    .sort((a, b) => {
+      const relLum1 = getRelativeLuminance(a.rgba);
+      const relLum2 = getRelativeLuminance(b.rgba);
 
+      return relLum1 - relLum2;
+    });
+
+  // the rest of the colors, naming could probably be better
   let largerCountColors = sortedColors.filter(
     (color) => color.count > smallestCount
   );
 
+  // Start by consolidating darkest colors first. Still need to think more about this, but it seems reasonable to consolidate the colors you notice the least first.
   if (largerCountColors.length === 0) {
     largerCountColors = sortedColors.filter(
       (color) =>
@@ -87,77 +99,43 @@ export const consolidateColors = (colors: ColorCount[]): ColorCount[] => {
     smallCountColors = [smallCountColors[0]];
   }
 
-  const shortestDistance: ColorsDistanceData = smallCountColors.reduce(
-    (data, currentColor) => {
-      const { distance } = data;
-      let shortestDistance = null;
-      let color1 = null;
-      let color2 = null;
+  const currentColor = smallCountColors[0];
 
-      largerCountColors.forEach((color) => {
-        const currentDistance = getColorDistance({
-          color1: currentColor.rgba,
-          color2: color.rgba,
-        });
-        if (shortestDistance === null) {
-          shortestDistance = currentDistance;
-          color1 = {
-            rgba: currentColor.rgba,
-            count: currentColor.count,
-          };
-          color2 = {
-            rgba: color.rgba,
-            count: color.count,
-          };
-        }
-        if (shortestDistance > currentDistance) {
-          shortestDistance = currentDistance;
-          color1 = {
-            rgba: currentColor.rgba,
-            count: currentColor.count,
-          };
-          color2 = {
-            rgba: color.rgba,
-            count: color.count,
-          };
-        }
-      });
+  let shortestDistance = null;
+  let color1 = null;
+  let color2 = null;
 
-      if (distance === null || shortestDistance < distance) {
-        return {
-          color1,
-          color2,
-          distance: shortestDistance,
-        };
-      }
-      return data;
-    },
-    {
-      color1: {
-        rgba: { r: 0, g: 0, b: 0, a: 0 },
-        count: 0,
-      },
-      color2: {
-        rgba: {
-          r: 1,
-          g: 1,
-          b: 1,
-          a: 0,
-        },
-        count: 0,
-      },
-      distance: null,
+  largerCountColors.forEach((color) => {
+    const currentDistance = getColorDistance({
+      color1: currentColor.rgba,
+      color2: color.rgba,
+    });
+    if (shortestDistance === null) {
+      shortestDistance = currentDistance;
+      color1 = {
+        rgba: currentColor.rgba,
+        count: currentColor.count,
+      };
+      color2 = {
+        rgba: color.rgba,
+        count: color.count,
+      };
     }
-  );
+    if (shortestDistance > currentDistance) {
+      shortestDistance = currentDistance;
+      color1 = {
+        rgba: currentColor.rgba,
+        count: currentColor.count,
+      };
+      color2 = {
+        rgba: color.rgba,
+        count: color.count,
+      };
+    }
+  });
 
-  const colorToRemove =
-    shortestDistance.color1.count > shortestDistance.color2.count
-      ? shortestDistance.color2
-      : shortestDistance.color1;
-  const colorToKeep =
-    shortestDistance.color1.count < shortestDistance.color2.count
-      ? shortestDistance.color2
-      : shortestDistance.color1;
+  const colorToRemove = color1.count > color2.count ? color2 : color1;
+  const colorToKeep = color1.count < color2.count ? color2 : color1;
 
   // return the bigger count of the two colors
   const consolidatedColors = sortedColors
@@ -177,12 +155,10 @@ export const consolidateColors = (colors: ColorCount[]): ColorCount[] => {
     });
 
   const numberOfColors = consolidatedColors.length;
-
-  if (numberOfColors > 20) {
-    console.log("consolidating, colors left: ", numberOfColors);
-    return consolidateColors(consolidatedColors);
+  if (numberOfColors > maxColors) {
+    console.log("consolidating...", numberOfColors);
+    return consolidateColors(consolidatedColors, maxColors);
   } else {
-    console.log("done consolidating!");
     return consolidatedColors;
   }
 };

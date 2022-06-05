@@ -12,6 +12,6 @@ export default async (
     res.status(200).json(colors);
   } catch (e) {
     console.log(e);
-    res.status(500).json(e);
+    res.status(500).json(e.message);
   }
 };
