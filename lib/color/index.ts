@@ -93,6 +93,7 @@ export const consolidateColors = (colors: ColorCount[]): ColorCount[] => {
       let shortestDistance = null;
       let color1 = null;
       let color2 = null;
+
       largerCountColors.forEach((color) => {
         const currentDistance = getColorDistance({
           color1: currentColor.rgba,
@@ -100,20 +101,29 @@ export const consolidateColors = (colors: ColorCount[]): ColorCount[] => {
         });
         if (shortestDistance === null) {
           shortestDistance = currentDistance;
+          color1 = {
+            rgba: currentColor.rgba,
+            count: currentColor.count,
+          };
+          color2 = {
+            rgba: color.rgba,
+            count: color.count,
+          };
         }
         if (shortestDistance > currentDistance) {
           shortestDistance = currentDistance;
-          (color1 = {
+          color1 = {
             rgba: currentColor.rgba,
             count: currentColor.count,
-          }),
-            (color2 = {
-              rgba: color.rgba,
-              count: color.count,
-            });
+          };
+          color2 = {
+            rgba: color.rgba,
+            count: color.count,
+          };
         }
       });
-      if (shortestDistance < distance) {
+
+      if (distance === null || shortestDistance < distance) {
         return {
           color1,
           color2,
@@ -136,7 +146,7 @@ export const consolidateColors = (colors: ColorCount[]): ColorCount[] => {
         },
         count: 0,
       },
-      distance: 100,
+      distance: null,
     }
   );
 
@@ -169,10 +179,8 @@ export const consolidateColors = (colors: ColorCount[]): ColorCount[] => {
   const numberOfColors = consolidatedColors.length;
 
   if (numberOfColors > 20) {
-    console.log("running again: ", numberOfColors);
     return consolidateColors(consolidatedColors);
   } else {
-    console.log("done consolidating: ", numberOfColors);
     return consolidatedColors;
   }
 };

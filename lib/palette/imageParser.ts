@@ -10,7 +10,7 @@ export const getFileColors = async (
 ): Promise<ColorCount[]> => {
   const dirRelativeToPublicFolder = "images";
   const dir = path.resolve("./public", dirRelativeToPublicFolder);
-  const filePath = `${dir}/test1.png`;
+  const filePath = `${dir}/test2.png`;
 
   let data = {};
   const jimpImage = await JIMP.read(filePath);
@@ -54,7 +54,13 @@ export const getFileColors = async (
     .map((key) => data[key])
     .filter((c) => c.count >= inclusionCount);
 
-  return consolidateColors(values);
+  try {
+    const consolidatedColors = consolidateColors(values);
+    return consolidatedColors;
+  } catch (e) {
+    console.log(e);
+    throw e;
+  }
 };
 
 const roundToNearestTen = (arg: number) => {

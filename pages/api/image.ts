@@ -11,6 +11,7 @@ export default async (
     const colors = await getFileColors(0);
     res.status(200).json(colors);
   } catch (e) {
+    console.log(e);
     res.status(500).json(e);
   }
 };
